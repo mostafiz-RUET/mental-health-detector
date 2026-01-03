@@ -1,0 +1,56 @@
+text,label
+"I feel sad and empty most of the day",Depression
+"I have lost interest in things I loved",Depression
+"I feel tired even after sleeping",Depression
+"I feel hopeless about my future",Depression
+"I blame myself for everything",Depression
+"I feel lonely even around people",Depression
+"I struggle to get out of bed",Depression
+"I feel worthless and unmotivated",Depression
+"My life feels meaningless",Depression
+"I cry without knowing why",Depression
+"I constantly worry about my future",Anxiety
+"My heart races when I think about exams",Anxiety
+"I feel nervous for no clear reason",Anxiety
+"I overthink small issues",Anxiety
+"I feel restless all the time",Anxiety
+"I fear something bad will happen",Anxiety
+"I get anxious in social situations",Anxiety
+"My mind never feels calm",Anxiety
+"I panic when deadlines approach",Anxiety
+"I worry too much about others opinions",Anxiety
+"I feel pressure from work and studies",Stress
+"I am overwhelmed with deadlines",Stress
+"I feel mentally exhausted",Stress
+"I have too many responsibilities",Stress
+"I feel burned out every day",Stress
+"I struggle to manage my time",Stress
+"I feel tense and irritated",Stress
+"My workload is too heavy",Stress
+"I feel stressed before exams",Stress
+"I feel drained due to pressure",Stress
+"I had a normal day today",Neutral
+"I went to class and studied",Neutral
+"I watched a movie and relaxed",Neutral
+"My day was calm and okay",Neutral
+"I talked with friends",Neutral
+"I completed my daily tasks",Neutral
+"I felt fine throughout the day",Neutral
+"I enjoyed my meal today",Neutral
+"I went for a walk",Neutral
+"I felt balanced and normal",Neutral
+"I feel sad and tired most days",Depression
+"I no longer enjoy daily activities",Depression
+"I feel emotionally numb",Depression
+"I feel down without reason",Depression
+"I lack motivation to work",Depression
+"I feel anxious before presentations",Anxiety
+"My thoughts keep racing",Anxiety
+"I worry about failing exams",Anxiety
+"I feel nervous at night",Anxiety
+"I feel stressed due to workload",Stress
+"I feel pressure from my job",Stress
+"I feel overwhelmed at university",Stress
+"I had a peaceful day",Neutral
+"I felt relaxed today",Neutral
+"I spent time reading",Neutral

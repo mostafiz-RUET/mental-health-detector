@@ -1,0 +1,29 @@
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Virtual environments
+venv/
+.venv/
+env/
+venv311/
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Streamlit cache/config
+.streamlit/
+
+# Optional: ignore large model artifacts (KEEP models folder tracked)
+# If you want to push model files to GitHub, comment out the next two lines.
+*.joblib
+*.pkl
+
+# Keep your model files if you decide to push them
+!models/*.joblib
