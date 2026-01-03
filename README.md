@@ -1,5 +1,7 @@
 # Mental Health Detection
 
+**Live App:** https://mental-health-detector-gulxc9v4otktrzf8mj3msx.streamlit.app/
+
 A Streamlit-based application that predicts a mental health-related category from user text using a calibrated SVM model with hybrid TF‑IDF features (word + character n‑grams).
 
 > Disclaimer: This project is for educational purposes and is **NOT** a medical diagnosis.
