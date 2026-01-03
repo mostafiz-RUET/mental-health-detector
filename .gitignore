@@ -27,3 +27,5 @@ Thumbs.db
 
 # Keep your model files if you decide to push them
 !models/*.joblib
+# Datasets (keep locally, don't push to GitHub)
+data/
