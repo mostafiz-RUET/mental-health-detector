@@ -8,6 +8,11 @@ from datetime import datetime
 import matplotlib.pyplot as plt
 from pathlib import Path
 
+# ---------------- Paths (deploy-safe) ----------------
+BASE_DIR = Path(__file__).resolve().parent
+ASSETS_DIR = BASE_DIR / "assets"
+MODELS_DIR = BASE_DIR / "models"
+
 # ---------------- Page config ----------------
 st.set_page_config(page_title="Mental Health Detector", layout="centered")
 
@@ -100,6 +105,16 @@ PUNCHLINES = [
 random.seed(datetime.now().strftime("%Y-%m-%d"))
 punchline = random.choice(PUNCHLINES)
 
+# ---------------- Load models (cached) ----------------
+@st.cache_resource
+def load_artifacts():
+    tfidf_word = joblib.load(MODELS_DIR / "tfidf_word.joblib")
+    tfidf_char = joblib.load(MODELS_DIR / "tfidf_char.joblib")
+    model = joblib.load(MODELS_DIR / "mental_health_svm_hybrid_calibrated.joblib")
+    return tfidf_word, tfidf_char, model
+
+tfidf_word, tfidf_char, model = load_artifacts()
+
 # ---------------- Sidebar ----------------
 with st.sidebar:
     st.markdown("## About")
@@ -112,7 +127,7 @@ with st.sidebar:
     st.write("**MD. MOSTAFIZUR RAHMAN**")
     st.write("📧 mdmrmanik1000@gmail.com")
 
-    img_path = Path("assets/developer.jpg")
+    img_path = ASSETS_DIR / "developer.jpg"
     if img_path.exists():
         st.image(str(img_path), caption="Developer", use_container_width=True)
     else:
@@ -131,11 +146,6 @@ with st.sidebar:
 # ---------------- Title + Punchline ----------------
 st.title("Mental Health Detection")
 st.markdown(f'<div class="quote-card">{punchline}</div>', unsafe_allow_html=True)
-
-# ---------------- Load models ----------------
-tfidf_word = joblib.load("models/tfidf_word.joblib")
-tfidf_char = joblib.load("models/tfidf_char.joblib")
-model = joblib.load("models/mental_health_svm_hybrid_calibrated.joblib")
 
 # -------- Dictionaries --------
 MOOD_TAGS = {
@@ -249,11 +259,10 @@ def make_donut(ax, sizes, labels):
         sizes,
         labels=None,
         startangle=90,
-        wedgeprops={"width": 0.38, "linewidth": 0.8, "edgecolor": "white"}  # donut hole
+        wedgeprops={"width": 0.38, "linewidth": 0.8, "edgecolor": "white"}
     )
     ax.axis("equal")
 
-    # Legend with percentages
     legend_labels = [f"{lab} ({val*100:.1f}%)" for lab, val in zip(labels, sizes)]
     ax.legend(
         wedges,
@@ -264,7 +273,6 @@ def make_donut(ax, sizes, labels):
         fontsize=9
     )
 
-    # Center label (top slice)
     top_i = int(np.argmax(sizes))
     ax.text(
         0, 0,
@@ -294,7 +302,10 @@ if predict_clicked:
     else:
         unclear, reason = is_unclear_text(text)
         if unclear:
-            st.warning(f"Input text is not clear: {reason}\n\nPlease write a meaningful sentence so the model can understand it.")
+            st.warning(
+                f"Input text is not clear: {reason}\n\n"
+                "Please write a meaningful sentence so the model can understand it."
+            )
         else:
             vec = vectorize_hybrid(text)
             probs = model.predict_proba(vec)[0]
@@ -353,7 +364,7 @@ if predict_clicked:
             donut_labels = [c for c, _ in top5] + (["Others"] if other_sum > 0 else [])
             donut_sizes = [p for _, p in top5] + ([other_sum] if other_sum > 0 else [])
 
-            fig, ax = plt.subplots(figsize=(4.0, 4.0), dpi=130)  # smaller
+            fig, ax = plt.subplots(figsize=(4.0, 4.0), dpi=130)
             make_donut(ax, donut_sizes, donut_labels)
 
             st.write("Probability distribution (Donut):")
