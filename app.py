@@ -94,16 +94,11 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# ---------------- Punch lines ----------------
-PUNCHLINES = [
-    "A clearer message gives a clearer insight.",
-    "Write a real sentence — get a more reliable result.",
-    "More detail = better prediction.",
-    "Your words help the model understand your moment.",
-    "Small words, better understanding.",
-]
-random.seed(datetime.now().strftime("%Y-%m-%d"))
-punchline = random.choice(PUNCHLINES)
+# ---------------- Punch line (first box) ----------------
+PUNCHLINE = (
+    "Don’t worry—we are here to support you and understand your situation. "
+    "Take a moment, remain calm, and clearly describe your concerns so we can provide an accurate and reliable result. 🙂"
+)
 
 # ---------------- Load models (cached) ----------------
 @st.cache_resource
@@ -145,29 +140,46 @@ with st.sidebar:
 
 # ---------------- Title + Punchline ----------------
 st.title("Mental Health Detection")
-st.markdown(f'<div class="quote-card">{punchline}</div>', unsafe_allow_html=True)
+st.markdown(f'<div class="quote-card">{PUNCHLINE}</div>', unsafe_allow_html=True)
 
 # -------- Dictionaries --------
 MOOD_TAGS = {
     "Positive / Happy": {
-        "happy","happiness","joy","joyful","cheerful","glad","grateful","thankful",
-        "optimistic","hopeful","proud","great","awesome","fantastic","amazing","smile","smiling","laugh","laughing"
+        "happy", "happiness", "joy", "joyful", "cheerful", "glad", "grateful", "thankful",
+        "optimistic", "hopeful", "proud", "great", "awesome", "fantastic", "amazing", "smile", "smiling", "laugh",
+        "laughing"
     },
     "Excited / Energetic": {
-        "excited","exciting","thrilled","pumped","energetic","motivated","eager","enthusiastic","can’t wait","cant wait"
+        "excited", "exciting", "thrilled", "pumped", "energetic", "motivated", "eager", "enthusiastic",
+        "can’t wait", "cant wait"
     },
     "Calm / Relaxed": {
-        "calm","relaxed","peaceful","content","fine","okay","stable","comfortable","at ease"
+        "calm", "relaxed", "peaceful", "content", "fine", "okay", "stable", "comfortable", "at ease"
     },
     "Angry / Irritable": {
-        "angry","furious","mad","annoyed","irritated","irritable","frustrated","rage","snapped","snapping"
+        "angry", "furious", "mad", "annoyed", "irritated", "irritable", "frustrated", "rage", "snapped", "snapping"
     },
     "Caring / Supportive": {
-        "care","caring","support","supportive","help","helping","kind","kindness","love","loved","compassion","empathy"
+        "care", "caring", "support", "supportive", "help", "helping", "kind", "kindness", "love", "loved",
+        "compassion", "empathy"
     },
     "Funny / Playful": {
-        "funny","hilarious","joking","joke","playful","silly","lol","haha","lmao"
+        "funny", "hilarious", "joking", "joke", "playful", "silly", "lol", "haha", "lmao"
     }
+}
+
+# Hide ML outputs for these mood tags (to avoid contradictory clinical predictions)
+HIDE_MODEL_WHEN_TAGS = {
+    "Excited / Energetic",
+    "Calm / Relaxed",
+    "Funny / Playful",
+    "Caring / Supportive",
+}
+
+# If text contains these bipolar indicators, do NOT hide ML output even if "energetic" appears
+BIPOLAR_HINTS = {
+    "bipolar", "mania", "manic", "hypomania", "hypomanic", "mood swings",
+    "racing thoughts", "grandiose", "impulsive spending"
 }
 
 SUICIDE_TRIGGERS = {
@@ -189,13 +201,18 @@ STRESS_KEYWORDS = {
 def simple_tokens(text: str) -> list[str]:
     return re.findall(r"[A-Za-z]+", text.lower())
 
-def has_suicide_trigger(text: str) -> bool:
+def has_any_phrase(text: str, phrases: set[str]) -> bool:
     t = text.lower()
-    return any(trg in t for trg in SUICIDE_TRIGGERS)
+    return any(p in t for p in phrases)
+
+def has_suicide_trigger(text: str) -> bool:
+    return has_any_phrase(text, SUICIDE_TRIGGERS)
 
 def has_stress_cue(text: str) -> bool:
-    t = text.lower()
-    return any(k in t for k in STRESS_KEYWORDS)
+    return has_any_phrase(text, STRESS_KEYWORDS)
+
+def has_bipolar_hint(text: str) -> bool:
+    return has_any_phrase(text, BIPOLAR_HINTS)
 
 def detect_mood_tags(text: str) -> list[str]:
     t = text.lower()
@@ -211,8 +228,13 @@ def vectorize_hybrid(text: str):
     xc = tfidf_char.transform([text])
     return hstack([xw, xc])
 
-def rerank_stress_safe(text: str, probs: np.ndarray, classes: np.ndarray,
-                       max_gap: float = 0.12, dep_block: float = 0.75) -> str:
+def rerank_stress_safe(
+    text: str,
+    probs: np.ndarray,
+    classes: np.ndarray,
+    max_gap: float = 0.12,
+    dep_block: float = 0.75
+) -> str:
     order = probs.argsort()[::-1]
     top1 = str(classes[order[0]])
     top1_p = float(probs[order[0]])
@@ -249,12 +271,6 @@ def clear_text():
     st.session_state["text"] = ""
 
 def make_donut(ax, sizes, labels):
-    """
-    Donut chart with:
-    - no overlapping labels on wedges
-    - legend on the right
-    - center text = top1 label + %
-    """
     wedges, _ = ax.pie(
         sizes,
         labels=None,
@@ -281,11 +297,16 @@ def make_donut(ax, sizes, labels):
         fontsize=12, fontweight="bold"
     )
 
-# ---------------- Main card ----------------
+# ---------------- Input card ----------------
 st.markdown('<div class="glass-card">', unsafe_allow_html=True)
-st.markdown("**Write a clear message (1–3 sentences).** Example: “I feel stressed due to exams and deadlines.”")
 
-text = st.text_area("Enter your text:", height=160, key="text")
+text = st.text_area(
+    "Enter your text:",
+    height=160,
+    key="text",
+    placeholder='Write a clear message (1–3 sentences). Example: “I feel stressed due to exams and deadlines.”',
+    label_visibility="collapsed",  # removes the empty label space (the "blank rounded box")
+)
 
 c1, c2 = st.columns([1, 1])
 with c1:
@@ -307,83 +328,18 @@ if predict_clicked:
                 "Please write a meaningful sentence so the model can understand it."
             )
         else:
-            vec = vectorize_hybrid(text)
-            probs = model.predict_proba(vec)[0]
-            classes = model.classes_
-            order = np.argsort(probs)[::-1]
-
-            pred_idx = int(order[0])
-            pred = str(classes[pred_idx])
-            top1_prob = float(probs[pred_idx])
-
             mood_tags = detect_mood_tags(text)
-            matched_stress = [k for k in sorted(STRESS_KEYWORDS) if k in text.lower()]
-            matched_stress = matched_stress[:6]
 
-            # Safety override for suicidal
-            if pred == "Suicidal" and not has_suicide_trigger(text):
-                for i in order[1:]:
-                    if str(classes[i]) != "Suicidal":
-                        pred = str(classes[i])
-                        pred_idx = int(i)
-                        top1_prob = float(probs[pred_idx])
-                        break
-                st.warning(
-                    'Safety note: <span class="red-kw">Suicidal</span> label is shown only when self-harm related words are present.',
-                    unsafe_allow_html=True
-                )
+            hide_model_output = (
+                (len(set(mood_tags) & HIDE_MODEL_WHEN_TAGS) > 0)
+                and (not has_suicide_trigger(text))
+                and (not has_bipolar_hint(text))
+            )
 
-            # Safe Stress rerank
-            if not has_suicide_trigger(text):
-                pred_after_stress = rerank_stress_safe(text, probs, classes)
-                if pred_after_stress != pred:
-                    pred = pred_after_stress
-                    if matched_stress:
-                        st.info("Detected stress indicators: " + ", ".join(matched_stress))
+            if hide_model_output:
+                st.subheader("Result")
+                st.success("Mood detected (non-clinical):")
 
-            # Contradiction override
-            POSITIVE_LIKE = {"Positive / Happy", "Calm / Relaxed", "Caring / Supportive", "Excited / Energetic"}
-            has_positive_like = any(t in POSITIVE_LIKE for t in mood_tags)
-            if has_positive_like and pred in {"Depression", "Suicidal"} and top1_prob < 0.60:
-                st.info("Your text looks positive/calm. Showing Normal as a safer default.")
-                pred = "Normal"
-
-            st.subheader("Result")
-            st.success(f"Predicted Category: {pred}")
-
-            # --- Bar chart (top-5) ---
-            pairs = sorted([(str(c), float(p)) for c, p in zip(classes, probs)], key=lambda x: x[1], reverse=True)
-            top5 = pairs[:5]
-            top5_dict = {c: p for c, p in top5}
-
-            st.write("Prediction probabilities (top 5):")
-            st.bar_chart(top5_dict)
-
-            # --- Donut chart (top-5 + Others) ---
-            other_sum = float(sum(p for _, p in pairs[5:]))
-            donut_labels = [c for c, _ in top5] + (["Others"] if other_sum > 0 else [])
-            donut_sizes = [p for _, p in top5] + ([other_sum] if other_sum > 0 else [])
-
-            fig, ax = plt.subplots(figsize=(4.0, 4.0), dpi=130)
-            make_donut(ax, donut_sizes, donut_labels)
-
-            st.write("Probability distribution (Donut):")
-            st.pyplot(fig, use_container_width=False)
-
-            # --- Top-3 list with red suicidal ---
-            st.write("Top predictions (raw model output):")
-            for c, p in pairs[:3]:
-                if c == "Suicidal":
-                    st.markdown(f"- **:red[{c}]**: {p*100:.2f}%")
-                else:
-                    st.write(f"- {c}: {p*100:.2f}%")
-
-            if top1_prob < 0.45:
-                st.info("Result is uncertain. Please add more details (1–2 more sentences) and try again.")
-
-            # --- Mood tags as colored chips ---
-            if mood_tags:
-                st.write("Extra segments (non-clinical mood tags):")
                 chip_html = ""
                 for tag in mood_tags:
                     if tag in {"Positive / Happy", "Excited / Energetic"}:
@@ -392,10 +348,98 @@ if predict_clicked:
                         chip_html += f'<span class="chip chip-calm">{tag}</span>'
                     else:
                         chip_html += f'<span class="chip chip-other">{tag}</span>'
-                st.markdown(chip_html, unsafe_allow_html=True)
 
-            if pred == "Suicidal" and has_suicide_trigger(text):
-                st.error(
-                    "If you are feeling unsafe or thinking about self-harm, please seek help immediately from a trusted person or a professional. "
-                    "If this is an emergency, contact your local emergency number."
+                if chip_html:
+                    st.markdown(chip_html, unsafe_allow_html=True)
+
+                st.info(
+                    "Note: For cheerful/calm/playful/supportive messages, the app shows only mood tags to avoid "
+                    "contradictory clinical labels caused by dataset/model limitations."
                 )
+            else:
+                vec = vectorize_hybrid(text)
+                probs = model.predict_proba(vec)[0]
+                classes = model.classes_
+                order = np.argsort(probs)[::-1]
+
+                pred_idx = int(order[0])
+                pred = str(classes[pred_idx])
+                top1_prob = float(probs[pred_idx])
+
+                matched_stress = [k for k in sorted(STRESS_KEYWORDS) if k in text.lower()]
+                matched_stress = matched_stress[:6]
+
+                if pred == "Suicidal" and not has_suicide_trigger(text):
+                    for i in order[1:]:
+                        if str(classes[i]) != "Suicidal":
+                            pred = str(classes[i])
+                            pred_idx = int(i)
+                            top1_prob = float(probs[pred_idx])
+                            break
+
+                    st.markdown(
+                        '<div class="glass-card">Safety note: <span class="red-kw">Suicidal</span> label is shown '
+                        'only when self-harm related words are present.</div>',
+                        unsafe_allow_html=True
+                    )
+
+                if not has_suicide_trigger(text):
+                    pred_after_stress = rerank_stress_safe(text, probs, classes)
+                    if pred_after_stress != pred:
+                        pred = pred_after_stress
+                        if matched_stress:
+                            st.info("Detected stress indicators: " + ", ".join(matched_stress))
+
+                POSITIVE_LIKE = {"Positive / Happy", "Calm / Relaxed", "Caring / Supportive", "Excited / Energetic"}
+                has_positive_like = any(t in POSITIVE_LIKE for t in mood_tags)
+                if has_positive_like and pred in {"Depression", "Suicidal"} and top1_prob < 0.60:
+                    st.info("Your text looks positive/calm. Showing Normal as a safer default.")
+                    pred = "Normal"
+
+                st.subheader("Result")
+                st.success(f"Predicted Category: {pred}")
+
+                pairs = sorted([(str(c), float(p)) for c, p in zip(classes, probs)], key=lambda x: x[1], reverse=True)
+                top5 = pairs[:5]
+                top5_dict = {c: p for c, p in top5}
+
+                st.write("Prediction probabilities (top 5):")
+                st.bar_chart(top5_dict)
+
+                other_sum = float(sum(p for _, p in pairs[5:]))
+                donut_labels = [c for c, _ in top5] + (["Others"] if other_sum > 0 else [])
+                donut_sizes = [p for _, p in top5] + ([other_sum] if other_sum > 0 else [])
+
+                fig, ax = plt.subplots(figsize=(4.0, 4.0), dpi=130)
+                make_donut(ax, donut_sizes, donut_labels)
+
+                st.write("Probability distribution (Donut):")
+                st.pyplot(fig, use_container_width=False)
+
+                st.write("Top predictions (raw model output):")
+                for c, p in pairs[:3]:
+                    if c == "Suicidal":
+                        st.markdown(f"- **:red[{c}]**: {p*100:.2f}%")
+                    else:
+                        st.write(f"- {c}: {p*100:.2f}%")
+
+                if top1_prob < 0.45:
+                    st.info("Result is uncertain. Please add more details (1–2 more sentences) and try again.")
+
+                if mood_tags:
+                    st.write("Extra segments (non-clinical mood tags):")
+                    chip_html = ""
+                    for tag in mood_tags:
+                        if tag in {"Positive / Happy", "Excited / Energetic"}:
+                            chip_html += f'<span class="chip chip-positive">{tag}</span>'
+                        elif tag in {"Calm / Relaxed", "Caring / Supportive"}:
+                            chip_html += f'<span class="chip chip-calm">{tag}</span>'
+                        else:
+                            chip_html += f'<span class="chip chip-other">{tag}</span>'
+                    st.markdown(chip_html, unsafe_allow_html=True)
+
+                if pred == "Suicidal" and has_suicide_trigger(text):
+                    st.error(
+                        "If you are feeling unsafe or thinking about self-harm, please seek help immediately from a "
+                        "trusted person or a professional. If this is an emergency, contact your local emergency number."
+                    )
